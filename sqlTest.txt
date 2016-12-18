@@ -93,3 +93,121 @@ CREATE TABLE dbo.[PR_PRICE](
 	
 	PRIMARY KEY (ITEM_ID, PRICE_DATE)
 );
+
+USE MASTER
+GO
+USE ItemCatalogue
+GO
+
+DECLARE @count INT 
+SET @count = 0
+
+WHILE @count < 5
+BEGIN
+INSERT INTO dbo.IC_CATEGORY
+    SELECT    @count, 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97),
+			CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97)
+    SET @count += 1
+END
+
+--SELECT * FROM IC_CATEGORY
+
+SET @count = 0
+
+WHILE @count < 10
+BEGIN
+INSERT INTO dbo.IC_BRAND
+    SELECT    @count, 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97),
+			CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97)
+    SET @count += 1
+END
+
+--SELECT * FROM IC_BRAND
+
+
+SET @count = 0
+
+WHILE @count < 10000
+BEGIN
+INSERT INTO dbo.IC_ITEM
+    SELECT    @count, 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + 
+            CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97) + CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97),
+			CHAR((ABS(CHECKSUM(NEWID())) % 26) + 97),
+			ABS(CHECKSUM(NEWID())) % 10,
+			ABS(CHECKSUM(NEWID())) % 5
+	SET @count += 1
+END
+
+--SELECT * FROM IC_ITEM
+
+USE MASTER
+GO
+USE PricingApplication
+GO
+
+DECLARE @count INT 
+DECLARE @x INT
+DECLARE @randomDate date
+SET @x = 0
+SET @count = 1
+SET @randomDate =  CAST(DATEADD(DAY, (ABS(CHECKSUM(NEWID())) % 100) * -1, GETDATE()) AS DATE)
+
+WHILE @count < 100001
+BEGIN
+INSERT INTO dbo.PR_PRICE
+    SELECT  @x, 
+			CAST(DATEADD(day, @count % 10, @randomDate) AS date),
+			(ABS(CHECKSUM(NEWID())) % 90007)
+
+IF @count % 10 = 0
+	SET @x += 1
+
+SET @count += 1
+END
+
+--SELECT * FROM PR_PRICE
+
+
+USE master
+GO
+
+
+
+------
+
+
+select ROW_NUMBER() OVER(PARTITION BY ITEM_ID ORDER BY PRICE_DATE) AS Row#, [ITEM_ID],[PRICE_DATE], [PRICE_VALUE]  FROM 
+[PricingApplication].[dbo].[PR_PRICE];
+
+with uniqueIds as (select ROW_NUMBER() OVER(PARTITION BY ITEM_ID ORDER BY PRICE_DATE) AS Row#, [ITEM_ID],[PRICE_DATE], [PRICE_VALUE]  FROM 
+[PricingApplication].[dbo].[PR_PRICE])
+insert into [PromotionApplication].[dbo].[PA_ITEM]
+select [ItemCatalogue].[dbo].[IC_ITEM].[ITEM_ID]
+      ,[ItemCatalogue].dbo.IC_ITEM.ITEM_NAME
+      ,[ItemCatalogue].dbo.IC_ITEM.[ITEM_DESCRIPTON]
+      ,[ItemCatalogue].dbo.IC_BRAND.[BRAND_ID]
+      ,[ItemCatalogue].dbo.IC_BRAND.[BRAND_NAME]
+      ,[ItemCatalogue].dbo.IC_CATEGORY.[CATEGORY_ID]
+      ,[ItemCatalogue].dbo.IC_CATEGORY.[CATEGORY_NAME]
+      ,uniqueIds.[PRICE_DATE]
+      ,uniqueIds.[PRICE_VALUE]
+  FROM [ItemCatalogue].[dbo].[IC_ITEM] inner join uniqueIds on [ItemCatalogue].[dbo].[IC_ITEM].[ITEM_ID]=uniqueIds.[ITEM_ID]
+  inner join [ItemCatalogue].dbo.IC_BRAND on IC_ITEM.brand_id = IC_BRAND.brand_id  
+  inner join [ItemCatalogue].dbo.IC_CATEGORY on IC_ITEM.category_id = IC_category.category_id 
+  where Row# = 1;
+
+  SELECT * from [PromotionApplication].[dbo].[PA_ITEM];
